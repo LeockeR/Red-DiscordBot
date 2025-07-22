@@ -19,7 +19,7 @@ async def main():
         print("ERROR: DISCORD_TOKEN no encontrado en variables de entorno")
         sys.exit(1)
     
-    prefix = os.getenv('BOT_PREFIX', '!')
+    prefix = os.getenv('BOT_PREFIX', '/')
     owner_id = os.getenv('OWNER_ID')
     
     if not owner_id:
