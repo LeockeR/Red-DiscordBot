@@ -1,53 +1,63 @@
 #!/usr/bin/env python3
 import os
-import asyncio
 import sys
+import asyncio
+import logging
 from pathlib import Path
 
-# Agregar el directorio redbot al path
-sys.path.insert(0, str(Path(__file__).parent / "redbot"))
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 async def main():
-    from redbot.core.bot import Red
-    from redbot.core.global_checks import init_global_checks
-    from redbot.core.config import Config
-    from redbot.core.data_manager import appdir
-    
-    # Configuración desde variables de entorno
+    # Verificar variables de entorno requeridas
     token = os.getenv('DISCORD_TOKEN')
     if not token:
-        print("ERROR: DISCORD_TOKEN no encontrado en variables de entorno")
+        print("❌ ERROR: DISCORD_TOKEN no encontrado en variables de entorno")
         sys.exit(1)
     
-    prefix = os.getenv('BOT_PREFIX', '/')
     owner_id = os.getenv('OWNER_ID')
-    
     if not owner_id:
-        print("ERROR: OWNER_ID no encontrado en variables de entorno")
+        print("❌ ERROR: OWNER_ID no encontrado en variables de entorno")  
         sys.exit(1)
     
-    # Crear directorio de datos si no existe
-    data_path = Path(os.getenv('REDBOT_DATA_PATH', './data'))
-    data_path.mkdir(exist_ok=True)
+    prefix = os.getenv('BOT_PREFIX', '!')
+    instance_name = os.getenv('INSTANCE_NAME', 'renderbot')
     
-    # Configurar Red
-    bot = Red(
-        cli_flags=type('', (), {
-            'token': token,
-            'prefix': [prefix],
-            'owner': [int(owner_id)],
-            'no_prompt': True,
-            'instance_name': os.getenv('INSTANCE_NAME', 'renderbot'),
-            'data_path': str(data_path)
-        })()
-    )
+    print(f"🤖 Iniciando bot con prefijo: {prefix}")
+    print(f"📁 Instancia: {instance_name}")
     
-    init_global_checks(bot)
-    
+    # Importar después de verificar variables
     try:
-        await bot.start(token)
-    except KeyboardInterrupt:
-        await bot.logout()
+        from redbot.__main__ import main as red_main
+        
+        # Configurar argumentos para redbot
+        sys.argv = [
+            'redbot',
+            instance_name,
+            '--token', token,
+            '--prefix', prefix, 
+            '--owner', owner_id,
+            '--no-prompt'
+        ]
+        
+        # Ejecutar redbot
+        await red_main()
+        
+    except ImportError as e:
+        print(f"❌ Error al importar Red-DiscordBot: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error al iniciar el bot: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("🛑 Bot detenido por el usuario")
+    except Exception as e:
+        print(f"❌ Error fatal: {e}")
+        sys.exit(1)
